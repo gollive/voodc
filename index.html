@@ -1,0 +1,388 @@
+
+<script>
+    var brandclick = true;
+    </script>
+    <html>
+    <head>
+    
+    <title>LiveTV / WebPlayer</title>
+    
+    <META HTTP-EQUIV="Content-Type" CONTENT="text/html; CHARSET=utf-8">
+    
+    
+    <meta name="robots" content="noindex"/>
+    <META name="description" content="internet television, teledifusion en internet, transmisiones deportivas directas">
+    
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    
+    <link rel="SHORTCUT ICON" href="//cdn.livetv852.me/favicon.ico">
+    
+    <LINK href="//cdn.livetv852.me/css/main.css" type="text/css" rel="stylesheet">
+    
+      
+    
+    <script type="text/javascript">
+    
+    function highlight(field) {
+            field.focus();
+            field.select();
+    }
+    
+    </script>
+    
+    </HEAD>
+    
+    
+    <body>
+    <script type="text/javascript">		
+        // remote scripting library
+        // (c) copyright 2005 modernmethod, inc
+        var sajax_debug_mode = false;
+        var sajax_request_type = "GET";
+        var sajax_target_id = "";
+        var sajax_failure_redirect = "";
+        
+        function sajax_debug(text) {
+          if (sajax_debug_mode)
+            alert(text);
+        }
+        
+         function sajax_init_object() {
+           sajax_debug("sajax_init_object() called..")
+           
+           var A;
+           
+           var msxmlhttp = new Array(
+            'Msxml2.XMLHTTP.5.0',
+            'Msxml2.XMLHTTP.4.0',
+            'Msxml2.XMLHTTP.3.0',
+            'Msxml2.XMLHTTP',
+            'Microsoft.XMLHTTP');
+          for (var i = 0; i < msxmlhttp.length; i++) {
+            try {
+              A = new ActiveXObject(msxmlhttp[i]);
+            } catch (e) {
+              A = null;
+            }
+          }
+           
+          if(!A && typeof XMLHttpRequest != "undefined")
+            A = new XMLHttpRequest();
+          if (!A)
+            sajax_debug("Could not create connection object.");
+          return A;
+        }
+        
+        var sajax_requests = new Array();
+        
+        function sajax_cancel() {
+          for (var i = 0; i < sajax_requests.length; i++) 
+            sajax_requests[i].abort();
+        }
+        
+        function sajax_do_call(func_name, args) {
+          var i, x, n;
+          var uri;
+          var post_data;
+          var target_id;
+          
+          sajax_debug("in sajax_do_call().." + sajax_request_type + "/" + sajax_target_id);
+          target_id = sajax_target_id;
+          if (typeof(sajax_request_type) == "undefined" || sajax_request_type == "") 
+            sajax_request_type = "GET";
+          
+          uri = "http://nx8.livetv1000.me/ajax.worker_external.php";
+          if (sajax_request_type == "GET") {
+          
+            if (uri.indexOf("?") == -1) 
+              uri += "?rdv=" + Math.random() + "&rs=" + escape(func_name);
+            else
+              uri += "&rdv=" + Math.random() + "&rs=" + escape(func_name);
+            uri += "&rst=" + escape(sajax_target_id);
+            uri += "&rsrnd=" + new Date().getTime();
+            
+            for (i = 0; i < args.length-1; i++) 
+              uri += "&rsargs[]=" + escape(args[i]);
+    
+            post_data = null;
+          } 
+          else if (sajax_request_type == "POST") {
+            post_data = "rs=" + escape(func_name);
+            post_data += "&rst=" + escape(sajax_target_id);
+            post_data += "&rsrnd=" + new Date().getTime();
+            
+            for (i = 0; i < args.length-1; i++) 
+              post_data = post_data + "&rsargs[]=" + escape(args[i]);
+          }
+          else {
+            alert("Illegal request type: " + sajax_request_type);
+          }
+          
+          x = sajax_init_object();
+          if (x == null) {
+            if (sajax_failure_redirect != "") {
+              location.href = sajax_failure_redirect;
+              return false;
+            } else {
+              sajax_debug("NULL sajax object for user agent:\n" + navigator.userAgent);
+              return false;
+            }
+          } else {
+            x.open(sajax_request_type, uri, true);
+            // window.open(uri);
+            
+            sajax_requests[sajax_requests.length] = x;
+            
+            if (sajax_request_type == "POST") {
+              x.setRequestHeader("Method", "POST " + uri + " HTTP/1.1");
+              x.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            }
+          
+            x.onreadystatechange = function() {
+              if (x.readyState != 4) 
+                return;
+    
+              sajax_debug("received " + x.responseText);
+            
+              var status;
+              var data;
+              var txt = x.responseText.replace(/^\s*|\s*$/g,"");
+              status = txt.charAt(0);
+              data = txt.substring(2);
+    
+              if (status == "") {
+                // let's just assume this is a pre-response bailout and let it slide for now
+              } else if (status == "-") 
+                alert("Error: " + data);
+              else {
+                if (target_id != "") 
+                  document.getElementById(target_id).innerHTML = eval(data);
+                else {
+                  try {
+                    var callback;
+                    var extra_data = false;
+                    if (typeof args[args.length-1] == "object") {
+                      callback = args[args.length-1].callback;
+                      extra_data = args[args.length-1].extra_data;
+                    } else {
+                      callback = args[args.length-1];
+                    }
+                    callback(eval(data), extra_data);
+                  } catch (e) {
+                    sajax_debug("Caught error " + e + ": Could not eval " + data );
+                  }
+                }
+              }
+            }
+          }
+          
+          sajax_debug(func_name + " uri = " + uri + "/post = " + post_data);
+          x.send(post_data);
+          sajax_debug(func_name + " waiting..");
+          delete x;
+          return true;
+        }
+        
+            
+        // wrapper for ajax_onlinewebplayer		
+        function x_ajax_onlinewebplayer() {
+          sajax_do_call("ajax_onlinewebplayer",
+            x_ajax_onlinewebplayer.arguments);
+        }
+        
+        </script>
+    
+    <script>
+    
+    var count = 0;
+    
+    function show_me_adext(date_server) {
+    
+      //
+      
+    }
+    
+    function ajax_onlinewebplayer(eventid, linkid){
+    
+      x_ajax_onlinewebplayer(eventid, linkid, show_me_adext);
+    
+      count++;
+    
+      if(count < 24){
+    
+        setTimeout(do_Action, 300000);
+    
+      }		
+    }
+    
+    function do_Action(){
+    
+      ajax_onlinewebplayer(290897188, 2730543);
+    
+    }
+    
+    setTimeout(do_Action, 300000);
+    
+    </script>
+    
+    
+    
+    <table width="100%" height="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td background="" height="55">
+    
+        <table width="100%">
+        <tr>
+          <td valign="top">
+          
+    <div id="localpp" style="position:absolute; cursor:default; width:90%; height:70%; margin:0; padding:0; z-index:999999999999999999999999999999999999;" onclick="if(linkaddress){ javascript:window.open(linkaddress,'','width='+screen.width+',height='+screen.height+',location=yes,menubar=yes,resizable=yes,scrollbars=yes,toolbar=yes').blur(); window.focus(); } this.style.display = 'none';"></div>
+                            
+          </td>
+          <td align="right">
+          
+            <table cellpadding=2 cellspacing=1 bgcolor="#aaaaaa">
+            <tr>
+              <td bgcolor="#ffffff">
+            
+                <script language="JavaScript" type="text/javascript">
+    var RndNum4NoCash = Math.round(Math.random() * 1000000000);
+    document.write(
+    '<iframe allowTransparency="true" src="//ads.livetv852.me/getbanner.php'
+    + '?zone_id=33&rnd=' + RndNum4NoCash
+    + '" frameborder=0 vspace=0 hspace=0 width="728" height=90'
+    + ' marginwidth=0 marginheight=0 scrolling=no></iframe>');
+    // -->
+    </script>						
+              </td>
+            </tr>
+            </table>
+            
+          </td>
+        </tr>
+        </table>
+                    
+      </td>
+    </tr>
+    <tr>
+      <td align="center" >
+        
+                
+          
+                
+            
+          <table OnMouseOver="brandclick = false;" OnMouseOut="brandclick = true;" style="margin-top: 5px; margin-bottom: 5px;" width=700 align="center" cellpadding=10 cellspacing=1 bgcolor="#aaaaaa" id="playerblock">
+          <tr>
+            <td bgcolor="#ffffff" align="center">
+            
+                        <iframe  allowFullScreen="true" scrolling=no frameborder="0 "width="700" height="480" src="https://antenasport.online/channel/exY3VzdG9tU2FsdDc4Mjk2OTk="></iframe>																																		
+                      </td>
+          </tr>
+          </table>
+                    
+                  
+    
+          <center>				
+          <script>
+            
+          document.write("<iframe style='margin-top: 5px;' width=700 height=16 marginwidth=0 marginheight=0 hspace=0 vspace=0 frameborder=0 scrolling=no src='//cdn.livetv852.me/cache/links/es.290897188.html?" + Math.floor(new Date().getTime() / 100000) + "'></iframe>");
+    
+          </script>				
+          </center>
+        
+      </td>
+    </tr>
+    <tr>
+      
+    
+      </td>
+    </tr>
+    <tr>
+      <td height=40 bgcolor="#ffffff">
+      
+        <table width="100%">
+        <tr>
+          <td>
+          
+            <table>
+            <tr>
+              <td>
+              
+                Referencia:
+              
+              </td>
+              <td>
+              
+                <input onClick="highlight(this);" readonly type="text" size=65 value="https://gollive.github.io/voodc/">
+              
+              </td>			
+              <td>
+                
+                <input type="button" value="Copy" onclick="javascript:clipboardData.setData('text','http://cdn.livetv.sx/webplayer.php?t=ifr&c=2730543&lang=es');">
+              
+              </td>
+            </tr>
+            </table>
+            
+          </td>
+          <td align="right">
+          
+            <!--LiveInternet counter-->
+    <script type="text/javascript"><!--
+    document.write("<a href='//www.liveinternet.ru/click' "+
+    "target=_blank><img style='opacity: .3; filter:Gray(), Alpha(Opacity=28 Style=0);' src='//counter.yadro.ru/hit?t16.1;r"+
+    escape(document.referrer)+((typeof(screen)=="undefined")?"":
+    ";s"+screen.width+"*"+screen.height+"*"+(screen.colorDepth?
+    screen.colorDepth:screen.pixelDepth))+";u"+escape(document.URL)+
+    ";"+Math.random()+
+    "' alt='' title='LiveInternet: РїРѕРєР°Р·Р°РЅРѕ С‡РёСЃР»Рѕ РїСЂРѕСЃРјРѕС‚СЂРѕРІ Р·Р° 24"+
+    " С‡Р°СЃР°, РїРѕСЃРµС‚РёС‚РµР»РµР№ Р·Р° 24 С‡Р°СЃР° Рё Р·Р° СЃРµРіРѕРґРЅСЏ' "+
+    "border=0 width=88 height=31><\/a>")//--></script>
+    <!--/LiveInternet-->				&nbsp;
+            
+          </td>
+        </tr>
+        </table>
+            
+      </td>
+    </tr>
+    </table>
+    
+    
+      
+          
+    
+    
+    </body>
+    
+     
+     
+    
+    <!-- BEGIN STANDARD TAG - popup or popunder - LiveTV: Run-of-site - DO NOT MODIFY -->
+    <SCRIPT SRC="" TYPE="text/javascript"></SCRIPT>
+    <!-- END TAG -->
+    
+    
+    <!-- Google Analytics -->
+    
+    <script type="text/javascript">
+    
+      var _gaq = _gaq || [];
+      var pluginUrl = '//www.google-analytics.com/plugins/ga/inpage_linkid.js';
+      _gaq.push(['_require', 'inpage_linkid', pluginUrl]);
+      _gaq.push(['_setAccount', 'UA-321536-3']);
+      _gaq.push(['_setDomainName', 'livetv.sx']);
+      _gaq.push(['_setAllowLinker', true]);
+      _gaq.push(['_trackPageview']);
+    
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+    
+    </script>
+    
+    
+    <!-- Google Analytics -->
+    
+    </html>
